@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Experiência AR Cris Fonseca</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      .logo-container {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+      }
+      .logo-container img {
+        height: 40px;
+        width: auto;
+        display: block;
+        opacity: 0.8;
+      }
+      .scanner-hint {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        background: rgba(0, 0, 0, 0.55);
+        color: #ffffff;
+        font-family: 'Arial', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        padding: 10px 22px;
+        border-radius: 30px;
+        white-space: nowrap;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        pointer-events: none;
+        text-align: center;
+      }
+      /* Remove o botão VR padrão do A-Frame */
+      .a-enter-vr,
+      .a-enter-vr-button {
+        display: none !important;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Instrução no topo do scanner -->
+    <div class="scanner-hint">Aponte o Scanner para a Foto</div>
+
+    <!-- Logo no canto inferior direito (Link desativado temporariamente) -->
+    <!--
+    <a
+      href="https://bio.link/orbee360"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="logo-container"
+    >
+      <img src="./orbee360.png" alt="Logo Orbee 360" />
+    </a>
+    -->
+    <div class="logo-container">
+      <img src="./orbee360.png" alt="Logo Orbee 360" />
+    </div>
+
+
+    <!-- Script de estabilização personalizado -->
+    <script>
+      /**
+       * Componente de estabilização para reduzir tremor em objetos AR
+       * @description Aplica suavização de movimento aos objetos para reduzir tremores
+       * @param {number} smoothingFactor - Fator de suavização (0.1 = mais suave, 0.9 = mais responsivo)
+       * @param {boolean} stabilizePosition - Se deve estabilizar a posição
+       * @param {boolean} stabilizeRotation - Se deve estabilizar a rotação
+       */
+      AFRAME.registerComponent('stabilizer', {
+        schema: {
+          smoothingFactor: { type: 'number', default: 0.15 },
+          stabilizePosition: { type: 'boolean', default: true },
+          stabilizeRotation: { type: 'boolean', default: false },
+        },
+
+        init: function () {
+          // Inicializa as posições e rotações anteriores
+          this.lastPosition = new THREE.Vector3();
+          this.lastRotation = new THREE.Euler();
+
+          // Obtém a posição e rotação iniciais
+          const obj3D = this.el.object3D;
+          this.lastPosition.copy(obj3D.position);
+          this.lastRotation.copy(obj3D.rotation);
+
+          // Flag para controlar se já foi inicializado
+          this.initialized = false;
+        },
+
+        tick: function () {
+          const obj3D = this.el.object3D;
+          const smoothingFactor = this.data.smoothingFactor;
+
+          // Estabilização de posição
+          if (this.data.stabilizePosition) {
+            const currentPosition = obj3D.position.clone();
+            const smoothedPosition = new THREE.Vector3();
+
+            // Aplica interpolação linear para suavizar o movimento
+            smoothedPosition.lerpVectors(
+              this.lastPosition,
+              currentPosition,
+              smoothingFactor
+            );
+
+            // Atualiza a posição do objeto
+            obj3D.position.copy(smoothedPosition);
+            this.lastPosition.copy(smoothedPosition);
+          }
+
+          // Estabilização de rotação (opcional)
+          if (this.data.stabilizeRotation) {
+            const currentRotation = obj3D.rotation.clone();
+            const smoothedRotation = new THREE.Euler();
+
+            // Suaviza a rotação
+            smoothedRotation.x = THREE.MathUtils.lerp(
+              this.lastRotation.x,
+              currentRotation.x,
+              smoothingFactor
+            );
+            smoothedRotation.y = THREE.MathUtils.lerp(
+              this.lastRotation.y,
+              currentRotation.y,
+              smoothingFactor
+            );
+            smoothedRotation.z = THREE.MathUtils.lerp(
+              this.lastRotation.z,
+              currentRotation.z,
+              smoothingFactor
+            );
+
+            obj3D.rotation.copy(smoothedRotation);
+            this.lastRotation.copy(smoothedRotation);
+          }
+        },
+      });
+    </script>
+
+    <!-- Cena MindAR com configurações de estabilidade -->
+    <a-scene
+      mindar-image="
+        imageTargetSrc: ./targets.mind;
+        maxTrack: 2;
+        smoothCount: 5;
+        smoothTolerance: 0.01;
+        smoothThreshold: 5;
+        missTolerance: 5;
+        warmupTolerance: 5;
+      "
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+    >
+      <!-- 1. "DESPENSA": Carregamos a sua foto 360° -->
+      <a-assets>
+        <!-- A imagem do dia é injetada via JavaScript -->
+        <img id="fotosfera-img" src="" />
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <!-- 2. "PALCO": O conteúdo que aparece sobre o cartão -->
+      <!-- Target 0 -->
+      <a-entity mindar-image-target="targetIndex: 0">
+        <!-- 
+          3. O POSTER PLANO:
+          Este é um plano 2D que exibe a imagem como um poster.
+          - src="#fotosfera-img": Aplica sua imagem no plano.
+          - width="1.6" height="1.2": Dimensões do poster (proporção 4:3, ajuste conforme sua imagem).
+          - position="0 0 0": Centralizado sobre o alvo detectado.
+          - rotation="0 0 0": Orientação padrão (voltado para a câmera).
+        -->
+        <a-plane
+          src="#fotosfera-img"
+          width="2.7"
+          height="4.8"
+          position="0 0 0"
+          rotation="0 0 0"
+          stabilizer
+        ></a-plane>
+      </a-entity>
+
+      <!-- Target 1 -->
+      <a-entity mindar-image-target="targetIndex: 1">
+        <a-plane
+          src="#fotosfera-img"
+          width="2.7"
+          height="4.8"
+          position="0 0 0"
+          rotation="0 0 0"
+          stabilizer
+        ></a-plane>
+      </a-entity>
+    </a-scene>
+
+    <!-- Elemento de áudio único oculto (carregado dinamicamente para economizar banda e CPU) -->
+    <audio id="ar-audio" preload="none"></audio>
+
+    <!-- Script: Controle de Mídias (Fotos e Áudios) -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // 1. Lista de todas as imagens disponíveis na pasta fotos/
+        var fotos = [
+          './fotos/1.webp',  './fotos/2.webp',  './fotos/3.webp',  './fotos/4.webp',
+          './fotos/5.webp',  './fotos/6.webp',  './fotos/7.webp',  './fotos/8.webp',
+          './fotos/9.webp',  './fotos/10.webp', './fotos/11.webp', './fotos/12.webp',
+          './fotos/13.webp', './fotos/14.webp', './fotos/15.webp', './fotos/16.webp',
+          './fotos/17.webp', './fotos/18.webp', './fotos/19.webp', './fotos/20.webp',
+          './fotos/21.webp', './fotos/22.webp', './fotos/23.webp', './fotos/24.webp',
+          './fotos/25.webp', './fotos/26.webp', './fotos/27.webp', './fotos/28.webp',
+          './fotos/29.webp', './fotos/30.webp'
+        ];
+
+        // --- Playlist de Fotos embaralhada ---
+        // Garante que todas as 30 fotos apareçam antes de repetir qualquer uma
+        var photoPlaylist = [];
+        var photoIndex = 0;
+
+        function buildShuffledPhotos() {
+          photoPlaylist = Array.from({ length: fotos.length }, function (_, i) { return i; });
+          for (var i = photoPlaylist.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = photoPlaylist[i]; photoPlaylist[i] = photoPlaylist[j]; photoPlaylist[j] = tmp;
+          }
+          photoIndex = 0;
+          console.log('[AR Cris Fonseca] Nova playlist de fotos:', photoPlaylist);
+        }
+
+        function getNextPhoto() {
+          if (photoIndex >= photoPlaylist.length) {
+            buildShuffledPhotos();
+          }
+          return fotos[photoPlaylist[photoIndex++]];
+        }
+
+        buildShuffledPhotos();
+
+        // Injeta a primeira foto imediatamente para carregamento inicial
+        var imgEl = document.getElementById('fotosfera-img');
+        var planeEls = document.querySelectorAll('a-plane');
+        var initialPhoto = getNextPhoto();
+        if (imgEl) {
+          imgEl.setAttribute('src', initialPhoto);
+        }
+        if (planeEls) {
+          planeEls.forEach(function (plane) {
+            plane.setAttribute('src', initialPhoto);
+          });
+        }
+
+        // --- Playlist de Áudios embaralhada ---
+        // Garante que todas as 5 músicas toquem antes de repetir qualquer uma
+        var totalAudios = 5;
+        var playlist = [];
+        var playlistIndex = 0;
+
+        function buildShuffledPlaylist() {
+          playlist = Array.from({ length: totalAudios }, function (_, i) { return i + 1; });
+          for (var i = playlist.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = playlist[i]; playlist[i] = playlist[j]; playlist[j] = tmp;
+          }
+          playlistIndex = 0;
+          console.log('[AR Cris Fonseca] Nova playlist de áudio:', playlist);
+        }
+
+        function nextTrackIndex() {
+          if (playlistIndex >= playlist.length) {
+            buildShuffledPlaylist();
+          }
+          return playlist[playlistIndex++];
+        }
+
+        buildShuffledPlaylist();
+
+        // --- Sistema de Reprodução e Eventos ---
+        var sceneEl = document.querySelector('a-scene');
+        var audioEl = document.getElementById('ar-audio');
+        var isPlaying = false;
+        var activeTarget = null; // Rastreia qual imagem está sendo escaneada no momento
+
+        // Mapeamento dos caminhos das músicas
+        var audioTracks = {
+          1: './Dio - Rainbow In The Dark.mp3',
+          2: './Gaviões da Fiel e Grêmio Gaviões da Fiel Torcida - Hino do Corinthians.mp3',
+          3: './Led Zeppelin - Rock and Roll (Remaster).mp3',
+          4: './The Cult- Fire Woman.mp3',
+          5: './Titãs - Flores.mp3'
+        };
+
+        // Desbloqueia o áudio em dispositivos móveis (ex: iOS Safari) no primeiro toque na tela
+        document.body.addEventListener('click', function() {
+          audioEl.play().then(function() {
+            audioEl.pause();
+            console.log('[AR Cris Fonseca] Áudio desbloqueado para iOS');
+          }).catch(function(e) {
+            console.log('[AR Cris Fonseca] Verificação de desbloqueio de áudio:', e);
+          });
+        }, { once: true });
+
+        sceneEl.addEventListener('loaded', function () {
+          var targets = document.querySelectorAll('[mindar-image-target]');
+
+          targets.forEach(function (target) {
+            // Toda vez que qualquer um dos alvos for detectado
+            target.addEventListener('targetFound', function () {
+              activeTarget = target;
+              if (!isPlaying) {
+                // 1. Muda a foto de todos os planos para a próxima foto da playlist
+                var novaFoto = getNextPhoto();
+                console.log('[AR Cris Fonseca] Mudando foto para:', novaFoto);
+                if (imgEl) {
+                  imgEl.setAttribute('src', novaFoto);
+                }
+                if (planeEls) {
+                  planeEls.forEach(function (plane) {
+                    plane.setAttribute('src', novaFoto);
+                  });
+                }
+
+                // 2. Toca a próxima música
+                playNextAudio();
+                isPlaying = true;
+              }
+            });
+
+            // Quando a imagem é perdida
+            target.addEventListener('targetLost', function () {
+              // Apenas reseta a reprodução se o alvo que foi perdido for o alvo atualmente ativo
+              if (activeTarget === target) {
+                audioEl.pause();
+                audioEl.src = ''; // Libera recursos de rede/memória do áudio do elemento
+                isPlaying = false;
+                activeTarget = null;
+              }
+            });
+          });
+        });
+
+        function playNextAudio() {
+          audioEl.pause();
+
+          var trackId = nextTrackIndex();
+          var audioSrc = audioTracks[trackId];
+          console.log('[AR Cris Fonseca] Tocando faixa:', trackId + ' - ' + audioSrc);
+
+          audioEl.src = audioSrc;
+          audioEl.load();
+
+          var playPromise = audioEl.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(function (error) {
+              console.log('Erro ao reproduzir áudio:', error);
+            });
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
