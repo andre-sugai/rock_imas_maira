@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Experiência AR Cris Fonseca</title>
+    <title>Experiência AR Maíra</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -214,20 +214,15 @@
     <!-- Script: Controle de Mídias (Fotos e Áudios) -->
     <script>
       document.addEventListener('DOMContentLoaded', function () {
-        // 1. Lista de todas as imagens disponíveis na pasta fotos/
-        var fotos = [
-          './fotos/1.webp',  './fotos/2.webp',  './fotos/3.webp',  './fotos/4.webp',
-          './fotos/5.webp',  './fotos/6.webp',  './fotos/7.webp',  './fotos/8.webp',
-          './fotos/9.webp',  './fotos/10.webp', './fotos/11.webp', './fotos/12.webp',
-          './fotos/13.webp', './fotos/14.webp', './fotos/15.webp', './fotos/16.webp',
-          './fotos/17.webp', './fotos/18.webp', './fotos/19.webp', './fotos/20.webp',
-          './fotos/21.webp', './fotos/22.webp', './fotos/23.webp', './fotos/24.webp',
-          './fotos/25.webp', './fotos/26.webp', './fotos/27.webp', './fotos/28.webp',
-          './fotos/29.webp', './fotos/30.webp'
-        ];
+        // 1. Lista de todas as imagens disponíveis na pasta fotos/ (01.webp até 089.webp)
+        var fotos = [];
+        for (var i = 1; i <= 89; i++) {
+          var paddedNum = '0' + i;
+          fotos.push('./fotos/' + paddedNum + '.webp');
+        }
 
         // --- Playlist de Fotos embaralhada ---
-        // Garante que todas as 30 fotos apareçam antes de repetir qualquer uma
+        // Garante que todas as 89 fotos apareçam antes de repetir qualquer uma
         var photoPlaylist = [];
         var photoIndex = 0;
 
@@ -238,7 +233,7 @@
             var tmp = photoPlaylist[i]; photoPlaylist[i] = photoPlaylist[j]; photoPlaylist[j] = tmp;
           }
           photoIndex = 0;
-          console.log('[AR Cris Fonseca] Nova playlist de fotos:', photoPlaylist);
+          console.log('[AR Maíra] Nova playlist de fotos:', photoPlaylist);
         }
 
         function getNextPhoto() {
@@ -263,9 +258,20 @@
           });
         }
 
+        // Mapeamento dos caminhos das músicas
+        var audioTracks = {
+          1: './audios/CA7RIEL & Paco Amoroso - DUMBAI.mp3',
+          2: './audios/Cazuza e Ney Matogrosso - Dia Dos Namorados.mp3',
+          3: './audios/Cidade Negra - Firmamento (Wrong Girl To Play With).mp3',
+          4: './audios/Emicida, Majur e Pabllo Vittar - AmarElo (Sample_ Sujeito de Sorte - Belchior).mp3',
+          5: './audios/Pit Passarell - A Minha Vida Vai Ser Bem Melhor.mp3',
+          6: './audios/Vespas Mandarinas - O Vício e o Verso.mp3',
+          7: './audios/Vespas Mandarinas - Santa Sampa.mp3'
+        };
+
         // --- Playlist de Áudios embaralhada ---
-        // Garante que todas as 5 músicas toquem antes de repetir qualquer uma
-        var totalAudios = 5;
+        // Garante que todas as músicas toquem antes de repetir qualquer uma
+        var totalAudios = Object.keys(audioTracks).length;
         var playlist = [];
         var playlistIndex = 0;
 
@@ -276,7 +282,7 @@
             var tmp = playlist[i]; playlist[i] = playlist[j]; playlist[j] = tmp;
           }
           playlistIndex = 0;
-          console.log('[AR Cris Fonseca] Nova playlist de áudio:', playlist);
+          console.log('[AR Maíra] Nova playlist de áudio:', playlist);
         }
 
         function nextTrackIndex() {
@@ -294,22 +300,13 @@
         var isPlaying = false;
         var activeTarget = null; // Rastreia qual imagem está sendo escaneada no momento
 
-        // Mapeamento dos caminhos das músicas
-        var audioTracks = {
-          1: './audios/Dio - Rainbow In The Dark.mp3',
-          2: './audios/Gaviões da Fiel e Grêmio Gaviões da Fiel Torcida - Hino do Corinthians.mp3',
-          3: './audios/Led Zeppelin - Rock and Roll (Remaster).mp3',
-          4: './audios/The Cult- Fire Woman.mp3',
-          5: './audios/Titãs - Flores.mp3'
-        };
-
         // Desbloqueia o áudio em dispositivos móveis (ex: iOS Safari) no primeiro toque na tela
         document.body.addEventListener('click', function() {
           audioEl.play().then(function() {
             audioEl.pause();
-            console.log('[AR Cris Fonseca] Áudio desbloqueado para iOS');
+            console.log('[AR Maíra] Áudio desbloqueado para iOS');
           }).catch(function(e) {
-            console.log('[AR Cris Fonseca] Verificação de desbloqueio de áudio:', e);
+            console.log('[AR Maíra] Verificação de desbloqueio de áudio:', e);
           });
         }, { once: true });
 
@@ -323,7 +320,7 @@
               if (!isPlaying) {
                 // 1. Muda a foto de todos os planos para a próxima foto da playlist
                 var novaFoto = getNextPhoto();
-                console.log('[AR Cris Fonseca] Mudando foto para:', novaFoto);
+                console.log('[AR Maíra] Mudando foto para:', novaFoto);
                 if (imgEl) {
                   imgEl.setAttribute('src', novaFoto);
                 }
@@ -357,7 +354,7 @@
 
           var trackId = nextTrackIndex();
           var audioSrc = audioTracks[trackId];
-          console.log('[AR Cris Fonseca] Tocando faixa:', trackId + ' - ' + audioSrc);
+          console.log('[AR Maíra] Tocando faixa:', trackId + ' - ' + audioSrc);
 
           audioEl.src = audioSrc;
           audioEl.load();
